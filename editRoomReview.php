@@ -1,33 +1,9 @@
-<!--
-$id is hard set to 1 so there are still results on the screen however this will change during next assessment
--->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit or add review</title>
-<script>
-// Validating booking reviews field
-var bookingReviewsValidation = function (bookingreviews) {
-    if (bookingreviews.validity.tooLong) {
-        bookingreviews.setCustomValidity("Your room review can't be more than 200 characters long.")
-    } else {
-        bookingreviews.setCustomValidity("");
-    }
-};
-
-// Connecting above functions to form via ID
-window.onload = function() {
-    var form = document.getElementById("form");
-    var bookingreviews = document.getElementById("bookingreviews");
-
-    form.addEventListener("input", function () {
-            bookingReviewsValidation(bookingreviews);
-    });
-};
-
-</script>
 </head>
 <body>
 <?php
@@ -42,46 +18,91 @@ window.onload = function() {
         exit;
     }
 
-    // The following code has been giving fatal errors and warnings so I commented it for the front-end development
-    // but will be essential for back-end 
+    Include "checkSession.php";
+    checkUser();
+    loginStatus();
 
-    // Getting booking ID based on what booking you clicked 'view detail'
-    //$id = $_GET['id'];
-    //if (empty($id) or !is_numeric($id)) {
-    //    echo "<h2>Invalid booking ID</h2>";
-    //    exit;
-    //}
+    // Validating any data inputted
+    function cleanInput($data)
+    {
+        return htmlspecialchars(stripslashes(trim($data)));
+    }
 
-    // Above function did not work so the below code is an alteration
+    // Finding ID via get
+    if ($_SERVER["REQUEST_METHOD"] == "GET") {
+        $id = $_GET['id'];
+        // Validating ID
+        if (empty($id) or !is_numeric($id)) {
+            echo "<h2>Invalid booking ID</h2>";
+            exit;
+        }
+    }
 
-    //if ($_SERVER["REQUEST_METHOD"] == "GET") {
-    //    $id = $_GET['id'];
-    //    if (empty($id) or !is_numeric($id)) {
-    //        echo "<h2>Invalid booking ID</h2>";
-    //        exit;
-    //    }
-    //}
+    if (isset($_POST['submit']) and !empty($_POST['submit']) and ($_POST['submit'] =='Update')) {
+        $error = 0;
+        $msg = "Error";
+        // Checking if ID is valid
+        if (isset($_POST['id']) and !empty($_POST['id']) and is_numeric($_POST['id'])) {
+            $id = cleanInput($_POST['id']);
+            // Else raise error flag
+        } else {
+            $error++;
+            $msg = 'Invalid booking ID';
+            $id = 0;
+        }
 
-    // Set at 1 for testing
-    $id = 1;
+        $bookingreviews = cleanInput($_POST['bookingreviews']);
+
+        if ($error == 0 and $id > 0) {
+            $update = 'UPDATE booking
+            SET bookingreviews=?
+            WHERE bookingID=?';
+            $stmt = mysqli_prepare($DBC,$update);
+            mysqli_stmt_bind_param($stmt, 'si', $bookingreviews, $id);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+            echo "<h2>Booking details updated</h2>";
+        } else {
+            echo "<h2>$msg</h2>" .PHP_EOL;
+        }
+    }
+    
 
     // Retrieve data from multiple tables
-    $query = 'SELECT booking.bookingID, customer.firstname, booking.roomreviews
-    FROM booking, customer
-    WHERE bookingID='.$id;
+    $query = 'SELECT booking.bookingID, customer.customerID, customer.firstname, booking.bookingreviews
+    FROM booking
+    INNER JOIN customer on booking.customerID = customer.customerID
+    WHERE bookingID=' .$id;
 
     $result = mysqli_query($DBC,$query);
-    //$rowcount = mysqli_num_rows($result);
+    $rowcount = mysqli_num_rows($result);
+    if ($rowcount > 0) {
+        $row = mysqli_fetch_assoc($result);
+        $firstname = $row['firstname'];
 ?>
 <h1>Edit/add room review</h1>
 <h2><a href="bookingList.php">[Return to booking listing]</a><a href="index.php">[Return to the main page]</a></h2>
 <form method="POST" action="editRoomReview.php" id="form">
-    <h2>Review made by Test</h2> <!-- Unsure how to link customer.firstname into the <h2> tag -->
+    <?php
+        // If review is set then show who made the review
+        if (!empty($row['bookingreviews'])) {
+            echo "<h2>Review made by $firstname</h2>";
+        }
+    ?>
+    <input type="hidden" name="id" value="<?php echo $id; ?>">
     <p>
         <label for="bookingreviews">Room review: </label>
-        <textarea id="bookingreviews" name="bookingreviews" minlength="5" maxlength="200"></textarea>
+        <textarea id="bookingreviews" name="bookingreviews" minlength="5" maxlength="200">
+            <?php echo htmlspecialchars($row['bookingreviews']); ?>
+        </textarea>
     </p>
     <input type="submit" name="submit" value="Update">
 </form>
+<?php
+    } else {
+        echo "<h2>Booking not found with that ID</h2>";
+    }
+    mysqli_close($DBC);
+?>
 </body>
 </html>

@@ -18,6 +18,9 @@
             exit;
         }
 
+    Include "checkSession.php";
+    loginStatus();
+
         // Testing connection
         // echo "Connected via ".mysqli_get_host_info($DBC);
         // mysqli_close($DBC);

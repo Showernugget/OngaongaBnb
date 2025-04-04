@@ -10,8 +10,13 @@ To access these pages go into booking list and select one of the actions for you
     <title>Home page</title>
 </head>
 <body>
+<?php
+Include "checkSession.php";
+loginStatus();
+?>
     <h1>Ongaonga Bed and Breakfast</h1>
     <ul>
+        <li><a href="login.php">Login / Logout</a></li>
         <li><a href="createBooking.php">Make a booking</a></li>
         <li><a href="bookingList.php">View current bookings</a></li>
         <li><a href="editBooking.php">Edit booking details</a></li>

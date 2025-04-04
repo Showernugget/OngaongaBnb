@@ -18,6 +18,10 @@
         exit;
     }
 
+    Include "checkSession.php";
+    checkUser();
+    loginStatus();
+
     // Getting booking ID based on what booking you clicked 'view detail'
     $id = $_GET['id'];
     if (empty($id) or !is_numeric($id)) {
